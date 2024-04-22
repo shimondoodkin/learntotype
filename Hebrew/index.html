@@ -287,16 +287,24 @@
                         this.currentLetter = this.currentWord[this.filled.length];
                         this.restOfWord = this.currentWord.substr(this.filled.length + 1);
 
-                        this.readKey = false;
-
-                        this.playLetter(k);
-                        await sleep(1000);
-
-                        if (this.currentWord[this.filled.length]) {
-                            this.playLetterQuestion(this.currentWord[this.filled.length]);
-                        }
-
                         this.readKey = true;
+
+                        (async () => {
+
+                            const { playPromise, stop } = this.playLetter(k);
+                            this.interruptReadkey.push(stop);
+
+                            const { sleepPromise, interruptSleep, sleepTimer } = interruptableSleep(1000)
+                            this.interruptReadkey.push(interruptSleep);
+                            await sleepPromise;
+
+
+                            if (this.currentWord[this.filled.length]) {
+                                const { playPromise, stop } = this.playLetterQuestion(this.currentWord[this.filled.length]);
+                                this.interruptReadkey.push(stop);
+                            }
+                        })() // no wait, no bloking on key function should not be blocking
+
 
                     } else {
                         this.playError();
@@ -304,15 +312,16 @@
 
                     if (this.currentWord === this.filled) {
                         this.readKey = false;
-                        this.playSuccess();
-                        confetti.start(1200, 50, 1500);
-                        await sleep(1000);
+                        (async () => {
+                            this.playSuccess();
+                            confetti.start(1200, 50, 1500);
+                            await sleep(1000);
 
-                        this.playCurrentWord();
-                        await sleep(2000);
+                            this.playCurrentWord();
+                            await sleep(2000);
 
-                        this.newWord();
-                        this.readKey = true;
+                            this.newWord();
+                        })() // no wait, no bloking on key function should not be blocking
                     }
                 },
                 newWord() {
@@ -323,13 +332,11 @@
                     this.filled = "";
                     this.currentLetter = this.currentWord[this.filled.length];
                     this.restOfWord = this.currentWord.substr(this.filled.length + 1);
-
+                    this.readKey = true;
                     this.playCurrentWord();
                     sleep(1000).then(() => {
                         this.playLetterQuestion(this.currentWord[this.filled.length]);
                     });
-
-
                 },
                 chooseCategory(category) {
                     this.selectedCategory = category;
