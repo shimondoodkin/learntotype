@@ -311,7 +311,21 @@
 
 
                     } else {
-                        this.playError();
+
+                        (async () => {
+                            this.playError();
+
+                            const { sleepPromise, interruptSleep, sleepTimer } = interruptableSleep(3000)
+                            this.interruptReadkey.push(interruptSleep);
+                            await sleepPromise;
+
+                            if (this.currentWord[this.filled.length]) {
+                                const { playPromise, stop } = this.playLetterQuestion(this.currentWord[this.filled.length]);
+                                this.interruptReadkey.push(stop);
+                            }
+
+                        })() // no wait, no bloking on key function should not be blocking
+
                     }
 
                     if (this.currentWord === this.filled) {
