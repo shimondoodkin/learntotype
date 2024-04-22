@@ -244,7 +244,7 @@
                 currentLetter: "",
                 restOfWord: "",
                 readKey: true,
-
+                interruptPlay: [],
             },
             mounted() {
                 window.addEventListener("keydown", this.keydown);
@@ -324,34 +324,47 @@
                     this.selectedCategory = category;
                     this.newWord();
                 },
+
+                playAudio(url) {
+                    while (this.interruptPlay.length > 0) this.interruptPlay.pop()()
+                    var audio = new Audio(url);
+                    const stop = () => {
+                        if (!audio) return;
+                        audio.pause();
+                        audio = null;
+                    };
+                    this.interruptPlay.push(stop)
+
+                    try {
+                        const playPromise = audio.play();
+                        return { playPromise, stop };
+                    } catch (e) { }
+                    return { playPromise: () => { }, stop: () => { } };
+                },
+
                 playBell() {
-                    var audio = new Audio('../sounds/bell.wav');
-                    audio.play();
+                    return this.playAudio('../sounds/bell.wav');
                 },
                 playCurrentWord() {
                     // move to function
-                    var audio = new Audio('imagesounds/' + this.currentWord + '.wav');
-                    audio.play();
+                    return this.playAudio('imagesounds/' + this.currentWord + '.wav');
                 },
+
                 playLetter(letter) {
-                    var audio = new Audio('lettersounds/' + letter + '.wav');
-                    audio.play();
+                    return this.playAudio('lettersounds/' + letter + '.wav');
                 },
 
                 playLetterQuestion(letter) {
-                    var audio = new Audio('letterquestions/' + letter + '.wav');
-                    audio.play();
+                    return this.playAudio('letterquestions/' + letter + '.wav');
                 },
 
 
                 playError() {
-                    var audio = new Audio('../sounds/error.wav');
-                    audio.play();
+                    return this.playAudio('../sounds/error.wav');
                 },
 
                 playSuccess() {
-                    var audio = new Audio('../sounds/success.wav');
-                    audio.play();
+                    return this.playAudio('../sounds/success.wav');
                 },
 
             }
