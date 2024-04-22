@@ -120,6 +120,14 @@
             return new Promise(resolve => setTimeout(resolve, milliseconds))
         }
 
+        const interruptableSleep = (milliseconds) => {
+            let exportedCallbacks = {}
+            const promise = new Promise(resolve => { exportedCallbacks = { interruptSleep: resolve, sleepTimer: setTimeout(resolve, milliseconds) }; })
+            return { sleepPromise: promise, ...exportedCallbacks };
+        }
+        // const { sleepPromise, interruptSleep, sleepTimer }=interruptableSleep(1000)
+        // await sleepPromise;
+
         window.onload = function () {
             document.getElementById("close").onclick = function () {
                 this.parentNode.parentNode.parentNode
@@ -244,6 +252,7 @@
                 currentLetter: "",
                 restOfWord: "",
                 readKey: true,
+                interruptReadkey: [],
                 interruptPlay: [],
             },
             mounted() {
@@ -261,6 +270,8 @@
                     if (!k) {
                         return;
                     }
+
+                    while (this.interruptReadkey.length > 0) this.interruptReadkey.pop()()
 
                     if (this.currentWord[this.filled.length] === k) {
                         this.filled += k;
