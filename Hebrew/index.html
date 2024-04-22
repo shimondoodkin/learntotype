@@ -124,9 +124,16 @@
             return new Promise(resolve => setTimeout(resolve, milliseconds))
         }
 
+        class InterruptError extends Error {
+            constructor(message = 'Interrupted as planed') {
+                super(message);
+                this.name = "InterruptError";
+            }
+        }
+
         const interruptableSleep = (milliseconds) => {
             let exportedCallbacks = {}
-            const promise = new Promise(resolve => { exportedCallbacks = { interruptSleep: resolve, sleepTimer: setTimeout(resolve, milliseconds) }; })
+            const promise = new Promise((resolve, reject) => { exportedCallbacks = { interruptSleep: () => reject(new InterruptError()), sleepTimer: setTimeout(resolve, milliseconds) }; })
             return { sleepPromise: promise, ...exportedCallbacks };
         }
         // const { sleepPromise, interruptSleep, sleepTimer }=interruptableSleep(1000)
@@ -258,6 +265,7 @@
                 readKey: true,
                 interruptReadkey: [],
                 interruptPlay: [],
+                lastKeyPress: 0,
             },
             mounted() {
                 window.addEventListener("keydown", this.keydown);
@@ -266,6 +274,7 @@
             methods: {
                 async keydown(e) {
                     let k = hebrewKeyboard[e.keyCode];
+
 
                     if (!this.readKey) {
                         return;
@@ -294,34 +303,68 @@
                         this.readKey = true;
 
                         (async () => {
+                            try {
+                                if (Date.now() - this.lastKeyPress >= 2000) {
+                                    const { playPromise, stop } = this.playLetter(k);
+                                    this.interruptReadkey.push(stop);
 
-                            const { playPromise, stop } = this.playLetter(k);
-                            this.interruptReadkey.push(stop);
+                                    const { sleepPromise, interruptSleep, sleepTimer } = interruptableSleep(1000)
+                                    this.interruptReadkey.push(interruptSleep);
+                                    await sleepPromise;
+                                }
 
-                            const { sleepPromise, interruptSleep, sleepTimer } = interruptableSleep(1000)
-                            this.interruptReadkey.push(interruptSleep);
-                            await sleepPromise;
+                                const nextLetter = this.currentWord[this.filled.length];
 
+                                if (Date.now() - this.lastKeyPress < 2000) {
+                                    const { playPromise, stop } = this.playLetter(nextLetter);
+                                    this.interruptReadkey.push(stop);
+                                    await playPromise;
 
-                            if (this.currentWord[this.filled.length]) {
-                                const { playPromise, stop } = this.playLetterQuestion(this.currentWord[this.filled.length]);
-                                this.interruptReadkey.push(stop);
+                                    const { sleepPromise, interruptSleep, sleepTimer } = interruptableSleep(5000)
+                                    this.interruptReadkey.push(interruptSleep);
+                                    await sleepPromise;
+                                }
+
+                                if (this.currentWord[this.filled.length]) {
+                                    const { playPromise, stop } = this.playLetterQuestion(nextLetter);
+                                    this.interruptReadkey.push(stop);
+                                }
+
+                            } catch (e) {
+                                if (
+                                    e instanceof InterruptError
+                                    ||
+                                    e instanceof DOMException // && e.message=='The play() request was interrupted by a call to pause().'
+                                ) return;
+                                console.log(e)
                             }
+
                         })() // no wait, no bloking on key function should not be blocking
 
 
                     } else {
 
                         (async () => {
-                            this.playError();
+                            try {
 
-                            const { sleepPromise, interruptSleep, sleepTimer } = interruptableSleep(3000)
-                            this.interruptReadkey.push(interruptSleep);
-                            await sleepPromise;
+                                this.playError();
 
-                            if (this.currentWord[this.filled.length]) {
-                                const { playPromise, stop } = this.playLetterQuestion(this.currentWord[this.filled.length]);
-                                this.interruptReadkey.push(stop);
+                                const { sleepPromise, interruptSleep, sleepTimer } = interruptableSleep(3000)
+                                this.interruptReadkey.push(interruptSleep);
+                                await sleepPromise;
+
+                                if (this.currentWord[this.filled.length]) {
+                                    const { playPromise, stop } = this.playLetterQuestion(this.currentWord[this.filled.length]);
+                                    this.interruptReadkey.push(stop);
+                                }
+                            }
+                            catch (e) {
+                                if (
+                                    e instanceof InterruptError
+                                    ||
+                                    e instanceof DOMException // && e.message=='The play() request was interrupted by a call to pause().'
+                                ) return;
+                                console.log(e)
                             }
 
                         })() // no wait, no bloking on key function should not be blocking
@@ -341,6 +384,8 @@
                             this.newWord();
                         })() // no wait, no bloking on key function should not be blocking
                     }
+                    this.lastKeyPress = Date.now()
+
                 },
                 newWord() {
                     const filteredWords = words.filter(x => x.category === this.selectedCategory);
@@ -369,6 +414,7 @@
                         audio.pause();
                         audio = null;
                     };
+
                     this.interruptPlay.push(stop)
 
                     try {
