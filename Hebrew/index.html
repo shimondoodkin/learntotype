@@ -317,26 +317,26 @@
 
                         (async () => {
                             try {
-                                if (Date.now() - this.lastKeyPress >= 2000) {
-                                    const { playPromise, stop } = this.playLetter(k);
-                                    this.interruptReadkey.push(stop);
+                                //if (Date.now() - this.lastKeyPress >= 2000) {
+                                // const { playPromise, stop } = this.playLetter(k);
+                                /// this.interruptReadkey.push(stop);
 
-                                    const { sleepPromise, interruptSleep, sleepTimer } = interruptableSleep(1000)
-                                    this.interruptReadkey.push(interruptSleep);
-                                    await sleepPromise;
-                                }
+                                //    const { sleepPromise, interruptSleep, sleepTimer } = interruptableSleep(1000)
+                                //    this.interruptReadkey.push(interruptSleep);
+                                //    await sleepPromise;
+                                //}
 
                                 const nextLetter = this.currentWord[this.filled.length];
 
-                                if (Date.now() - this.lastKeyPress < 2000) {
-                                    const { playPromise, stop } = this.playLetter(nextLetter);
-                                    this.interruptReadkey.push(stop);
-                                    await playPromise;
+                                //if (Date.now() - this.lastKeyPress < 2000) {
+                                const { playPromise, stop } = this.playLetter(nextLetter);
+                                this.interruptReadkey.push(stop);
+                                await playPromise;
 
-                                    const { sleepPromise, interruptSleep, sleepTimer } = interruptableSleep(5000)
-                                    this.interruptReadkey.push(interruptSleep);
-                                    await sleepPromise;
-                                }
+                                const { sleepPromise, interruptSleep, sleepTimer } = interruptableSleep(5000)
+                                this.interruptReadkey.push(interruptSleep);
+                                await sleepPromise;
+                                //}
 
                                 if (this.currentWord[this.filled.length]) {
                                     const { playPromise, stop } = this.playLetterQuestion(nextLetter);
